@@ -117,9 +117,9 @@ Axiom answers with four properties — **fail-closed**.
 | | Property | Mechanism | Ship rule |
 |---|----------|-----------|-----------|
 | **P1** | Firmware / boot integrity | dm-verity + signed FIT (**U-Boot**) | Fail-closed |
-| **P2** | Command authenticity | `axsign` Ed25519 + monotonic nonce | Fail-closed |
-| **P3** | Audit completeness | `axld` Merkle + ledger + `axverify` | Tamper detectable |
-| **P4** | Update integrity | `axota` registry + manufacturer signature | Rogue rejected |
+| **P2** | Command authenticity | `axsign` — real MAVLink v2 codec, Ed25519 envelope + nonce window, fail-closed FC forwarding | Fail-closed |
+| **P3** | Audit completeness | `axld` Merkle + per-event signatures + ledger + `axverify` | Tamper detectable |
+| **P4** | Update integrity | `axota` — manufacturer-signed manifests, anti-rollback counter, authorized registry | Rogue rejected |
 
 ```text
 axkey → P1 → axsign → axld / axverify → axota → vertical → Console
@@ -147,11 +147,11 @@ flowchart LR
 
 | Daemon | One line |
 |--------|----------|
-| <img src="../logo/logoIcon.svg" width="18" align="absmiddle"/> `axkey` | Key backend — softkey in lab; TPM / TrustZone planned for prod |
-| `axsign` | Protocol auth — unsigned / replayed dropped |
-| `axld` | Merkle over events — optional ledger anchor |
-| `axota` | Hash registry + manufacturer signature before install |
-| `axverify` | Prove a log matches its anchors |
+| <img src="../logo/logoIcon.svg" width="18" align="absmiddle"/> `axkey` | Key backend — softkey lab; TPM simulator in CI; hardware ESAPI compile-covered. Live revocation/rotation, emergency key ops |
+| `axsign` | Protocol auth — real MAVLink v2 ingress; unsigned / replayed / malformed dropped, fail-closed FC forwarding |
+| `axld` | Merkle over signed events — optional ledger anchor |
+| `axota` | Keyless engine: manufacturer-signed manifests, anti-rollback counter, authorized registry; offline signing tool |
+| `axverify` | Prove a log matches its anchors — strict coverage + signature checks |
 | `axctl` | Operator CLI |
 
 Unix-socket IPC. Frozen contracts. Port traits keep adapters swappable.
@@ -196,16 +196,16 @@ Unix-socket IPC. Frozen contracts. Port traits keep adapters swappable.
 
 ## Status
 
-Scaffolding ≠ production.
+**2026-10-27.** Scaffolding ≠ production. QEMU + softkey/TPM-sim prove **logic**, not physical adversary resistance.
 
 | Gate | Meaning | Now |
 |------|---------|-----|
-| **A** | QEMU · P1 · Trust Services · SEC · UAV demo | Done (lab softkey) |
-| **B** | CM4 metal flash + re-prove | In progress |
-| **C** | TPM / HW key · softkey banned · live ledger | Not started |
+| **A** | QEMU · P1 · Trust Services · SEC · UAV demo | Done (lab) — incl. MAVLink v2 end-to-end + OTA fail-closed guest checks |
+| **B** | CM4 metal flash + re-prove | In progress (images build-green; flash pending) |
+| **C** | TPM / HW key · softkey banned · live ledger | Host/sim partial — softkey banned, TPM sim, ESAPI CI, OTA host half; metal open |
 | **D–F** | Eval kit · commercial · defence | Scaffold |
 
-**Phase 1 exit = A + B + C.**
+**Phase 1 exit = A + B + C.** Evidence posture: 13 SEC probes, CI (fmt · clippy · tests · tpm2 · cargo-deny · ESAPI build), QEMU guest demos, honest gap register.
 
 This repo is the **public org page**. Engineering source is not published here. Partners and Community Edition follow the roadmap — [research@axiom-os.io](mailto:research@axiom-os.io).
 
